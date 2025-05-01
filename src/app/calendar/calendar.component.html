@@ -1,0 +1,79 @@
+
+    <div class="w-full m-4">
+      <div class="max-w-6xl mx-auto">
+        <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-5">
+          <div class="mb-3 md:mb-0">
+            <h2 class="text-2xl font-semibold">{{ viewDate | date:'MMMM yyyy' }}</h2>
+          </div>
+          <div class="flex flex-col sm:flex-row gap-3">
+            <div class="flex">
+              <button
+                class="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white font-medium rounded-l-md"
+                mwlCalendarPreviousView
+                [view]="view"
+                [(viewDate)]="viewDate"
+                (viewDateChange)="closeOpenMonthViewDay()">
+                Previous
+              </button>
+              <button
+                class="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium border-x border-gray-300"
+                mwlCalendarToday
+                [(viewDate)]="viewDate">
+                Today
+              </button>
+              <button
+                class="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white font-medium rounded-r-md"
+                mwlCalendarNextView
+                [view]="view"
+                [(viewDate)]="viewDate"
+                (viewDateChange)="closeOpenMonthViewDay()">
+                Next
+              </button>
+            </div>
+            <div class="flex">
+              <button
+                class="px-4 py-2 font-medium rounded-l-md"
+                [ngClass]="view === CalendarView.Month ? 'bg-blue-600 text-white' : 'bg-blue-500 text-white hover:bg-blue-600'"
+                (click)="setView(CalendarView.Month)">
+                Month
+              </button>
+              <button
+                class="px-4 py-2 font-medium border-x border-blue-600"
+                [ngClass]="view === CalendarView.Week ? 'bg-blue-600 text-white' : 'bg-blue-500 text-white hover:bg-blue-600'"
+                (click)="setView(CalendarView.Week)">
+                Week
+              </button>
+              <button
+                class="px-4 py-2 font-medium rounded-r-md"
+                [ngClass]="view === CalendarView.Day ? 'bg-blue-600 text-white' : 'bg-blue-500 text-white hover:bg-blue-600'"
+                (click)="setView(CalendarView.Day)">
+                Day
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div [ngSwitch]="view" class="bg-white rounded-lg shadow-md">
+          <mwl-calendar-month-view
+            *ngSwitchCase="CalendarView.Month"
+            [viewDate]="viewDate"
+            [events]="events"
+            [refresh]="refresh"
+            [activeDayIsOpen]="activeDayIsOpen"
+            (dayClicked)="dayClicked($event)">
+          </mwl-calendar-month-view>
+          <mwl-calendar-week-view
+            *ngSwitchCase="CalendarView.Week"
+            [viewDate]="viewDate"
+            [events]="events"
+            [refresh]="refresh">
+          </mwl-calendar-week-view>
+          <mwl-calendar-day-view
+            *ngSwitchCase="CalendarView.Day"
+            [viewDate]="viewDate"
+            [events]="events"
+            [refresh]="refresh">
+          </mwl-calendar-day-view>
+        </div>
+      </div>
+    </div>

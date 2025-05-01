@@ -1,1 +1,38 @@
-/* You can add global styles to this file, and also import other style files */
+@import "../node_modules/angular-calendar/css/angular-calendar.css";
+@import "tailwindcss";
+
+.cal-month-view .cal-day-cell.cal-today {
+  @apply bg-blue-50;
+}
+
+.cal-month-view .cal-day-cell.cal-weekend {
+  @apply bg-gray-50;
+}
+
+.cal-month-view .cal-day-cell.cal-in-month.cal-has-events {
+  @apply cursor-pointer;
+}
+
+.cal-month-view .cal-day-badge {
+  @apply bg-blue-500 text-white;
+}
+
+.cal-month-view .cal-event {
+  @apply bg-blue-500;
+}
+
+.cal-month-view .cal-open-day-events {
+  @apply bg-gray-100 shadow-md p-2 rounded-md;
+}
+
+.cal-week-view .cal-header.cal-today {
+  @apply bg-blue-50;
+}
+
+.cal-week-view .cal-event {
+  @apply bg-blue-500 text-white rounded-md px-1;
+}
+
+.cal-day-view .cal-hour-segment:hover {
+  @apply bg-gray-100;
+}
