@@ -1,46 +1,153 @@
 import { Component, OnInit } from '@angular/core';
 import { Subject } from 'rxjs';
-import { CalendarEvent, CalendarView } from 'angular-calendar';
-import { startOfDay, endOfDay, subDays, addDays, endOfMonth, isSameDay, isSameMonth, addHours } from 'date-fns';
+import { CalendarEvent, CalendarView, CalendarEventTimesChangedEvent } from 'angular-calendar';
+import {
+  startOfDay, endOfDay, subDays, addDays, endOfMonth,
+  isSameDay, isSameMonth, addHours, setHours, setMinutes
+} from 'date-fns';
 import { MonthViewDay } from 'calendar-utils';
+
+interface Provider {
+  id: number;
+  name: string;
+  specialty: string;
+  availableTimes: string[];
+}
+
+interface AppointmentFormData {
+  providerId: number;
+  date: Date;
+  time: string;
+  reason: string;
+  notes: string;
+}
 
 @Component({
   selector: 'app-calendar',
   standalone: false,
   templateUrl: './calendar.component.html',
-  styleUrl: './calendar.component.css'
+  styleUrl: './calendar.component.css',
+  styles: [`
+    .day-cell:hover .add-button {
+      opacity: 1;
+    }
+    .past-day {
+      opacity: 0.6;
+    }
+    .cal-event-title {
+      color: #1f2937 !important;
+    }
+  `]
 })
-
 export class CalendarComponent implements OnInit {
   view: CalendarView = CalendarView.Month;
   CalendarView = CalendarView;
   viewDate: Date = new Date();
   refresh = new Subject<void>();
+  today = startOfDay(new Date());
 
+  // Modal controls
+  showModal: boolean = false;
+  selectedDate: Date = new Date();
+
+  // Form data
+  appointmentForm: AppointmentFormData = {
+    providerId: 0,
+    date: new Date(),
+    time: '09:00',
+    reason: '',
+    notes: ''
+  };
+
+  // Available times (typically would come from API based on provider availability)
+  availableTimes: string[] = [
+    '08:00', '08:30', '09:00', '09:30', '10:00', '10:30', '11:00', '11:30',
+    '13:00', '13:30', '14:00', '14:30', '15:00', '15:30', '16:00', '16:30'
+  ];
+
+
+
+  // Mock providers data (would typically come from API)
+  providers: Provider[] = [
+    {
+      id: 1,
+      name: 'Dr. Sarah Johnson',
+      specialty: 'Cardiologist',
+      availableTimes: ['09:00', '10:30', '13:00', '15:30']
+    },
+    {
+      id: 2,
+      name: 'Dr. Michael Chen',
+      specialty: 'Dermatologist',
+      availableTimes: ['08:30', '11:00', '14:00', '16:00']
+    },
+    {
+      id: 3,
+      name: 'Dr. Emily Rodriguez',
+      specialty: 'Family Medicine',
+      availableTimes: ['08:00', '09:30', '13:30', '15:00']
+    }
+  ];
+
+  // Mock appointments data (would typically come from API)
   events: CalendarEvent[] = [
     {
-      start: startOfDay(new Date()),
-      title: 'Sample Event',
+      start: setHours(setMinutes(startOfDay(new Date()), 30), 9),
+      end: setHours(setMinutes(startOfDay(new Date()), 0), 10),
+      title: 'Annual Check-up with Dr. Johnson',
       color: {
-        primary: '#ad2121',
-        secondary: '#FAE3E3'
+        primary: '#0ea5e9',
+        secondary: '#e0f2fe',
+        secondaryText: '#000000'
+      }
+    },
+    {
+      start: setHours(setMinutes(addDays(startOfDay(new Date()), 2), 0), 14),
+      end: setHours(setMinutes(addDays(startOfDay(new Date()), 2), 30), 14),
+      title: 'Skin Consultation with Dr. Chen',
+      color: {
+        primary: '#8b5cf6',
+        secondary: '#ede9fe',
+        secondaryText: '#000000'
+      }
+    },
+    {
+      start: setHours(setMinutes(addDays(startOfDay(new Date()), 5), 30), 10),
+      end: setHours(setMinutes(addDays(startOfDay(new Date()), 5), 0), 11),
+      title: 'Follow-up with Dr. Rodriguez',
+      color: {
+        primary: '#10b981',
+        secondary: '#d1fae5',
+        secondaryText: '#000000'
       }
     }
   ];
 
   activeDayIsOpen: boolean = false;
 
+  // Track selected provider's available times
+  selectedProviderTimes: string[] = [];
+
   constructor() { }
 
   ngOnInit(): void {
-        throw new Error('Method not implemented.');
-    }
+    // Initialize with some data
+    this.loadAppointments();
+  }
+
+  loadAppointments(): void {
+    // In a real app, this would fetch data from an API
+    // The mock data is already loaded in the events array
+  }
 
   dayClicked({ day, sourceEvent }: { day: MonthViewDay; sourceEvent: MouseEvent | KeyboardEvent }): void {
     if (isSameMonth(day.date, this.viewDate)) {
       this.activeDayIsOpen = !((isSameDay(this.viewDate, day.date) && this.activeDayIsOpen) ||
         day.events.length === 0);
       this.viewDate = day.date;
+
+      // Store selected date for appointment creation
+      this.selectedDate = day.date;
     }
   }
 
@@ -50,5 +157,113 @@ export class CalendarComponent implements OnInit {
 
   closeOpenMonthViewDay(): void {
     this.activeDayIsOpen = false;
+  }
+
+  // Method to check if a date is today or in the future
+  isDateAvailable(date: Date): boolean {
+    return startOfDay(date) >= this.today;
+  }
+
+  // New method to check if a day is currently expanded
+  isDayExpanded(date: Date): boolean {
+    return this.activeDayIsOpen && isSameDay(date, this.viewDate);
+  }
+
+  openAppointmentModal(date: Date): void {
+    this.selectedDate = date;
+    this.appointmentForm.date = date;
+    this.showModal = true;
+  }
+
+  closeModal(): void {
+    this.showModal = false;
+  }
+
+  onProviderChange(providerId: number): void {
+    const selectedProvider = this.providers.find(p => p.id === +providerId);
+    if (selectedProvider) {
+      this.selectedProviderTimes = selectedProvider.availableTimes;
+      // Default to first available time
+      this.appointmentForm.time = selectedProvider.availableTimes[0] || '';
+    } else {
+      this.selectedProviderTimes = [];
+    }
+  }
+
+  createAppointment(): void {
+    if (!this.appointmentForm.providerId || !this.appointmentForm.time) {
+      alert('Please select a provider and time');
+      return;
+    }
+
+    // Find the selected provider
+    const provider = this.providers.find(p => p.id === this.appointmentForm.providerId);
+    if (!provider) return;
+
+    // Parse the time string
+    const [hours, minutes] = this.appointmentForm.time.split(':').map(Number);
+
+    // Create the appointment date by combining selected date with selected time
+    const appointmentDate = new Date(this.selectedDate);
+    appointmentDate.setHours(hours, minutes, 0);
+
+    // Create end time (30-minute appointments)
+    const endTime = new Date(appointmentDate);
+    endTime.setMinutes(endTime.getMinutes() + 30);
+
+    // Choose a color based on provider specialty
+    let colorScheme = {
+      primary: '#0ea5e9',
+      secondary: '#e0f2fe'
+    };
+
+    // Assign different colors based on provider
+    if (provider.id === 1) {
+      colorScheme = {
+        primary: '#0ea5e9', // blue
+        secondary: '#e0f2fe'
+      };
+    } else if (provider.id === 2) {
+      colorScheme = {
+        primary: '#8b5cf6', // purple
+        secondary: '#ede9fe'
+      };
+    } else if (provider.id === 3) {
+      colorScheme = {
+        primary: '#10b981', // green
+        secondary: '#d1fae5'
+      };
+    }
+
+    // Create the new appointment event
+    const newAppointment: CalendarEvent = {
+      start: appointmentDate,
+      end: endTime,
+      title: `${this.appointmentForm.reason || 'Appointment'} with ${provider.name}`,
+      color: colorScheme
+    };
+
+    // Add to events array and ensure it triggers update
+    this.events = [...this.events, newAppointment];
+
+    // Force refresh the calendar view
+    setTimeout(() => {
+      this.refresh.next();
+    }, 100);
+
+    // Show confirmation
+    alert('Appointment created successfully!');
+
+    // Close the modal
+    this.closeModal();
+
+    // Reset form
+    this.appointmentForm = {
+      providerId: 0,
+      date: new Date(),
+      time: '09:00',
+      reason: '',
+      notes: ''
+    };
   }
 }

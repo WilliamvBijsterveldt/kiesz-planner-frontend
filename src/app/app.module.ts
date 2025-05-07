@@ -6,11 +6,15 @@ import { adapterFactory} from 'angular-calendar/date-adapters/date-fns';
 import { AppRoutingModule } from './app-routing.module';
 import { AppComponent } from './app.component';
 import { CalendarComponent } from './calendar/calendar.component';
+import { NavbarComponent } from './navbar/navbar.component';
+import {NgOptimizedImage} from '@angular/common';
+import {FormsModule} from '@angular/forms';
 
 @NgModule({
   declarations: [
     AppComponent,
-    CalendarComponent
+    CalendarComponent,
+    NavbarComponent
   ],
   imports: [
     BrowserModule,
@@ -19,7 +23,9 @@ import { CalendarComponent } from './calendar/calendar.component';
       provide: DateAdapter,
       useFactory: adapterFactory,
     }),
-    AppRoutingModule
+    AppRoutingModule,
+    NgOptimizedImage,
+    FormsModule
   ],
   providers: [],
   bootstrap: [AppComponent]

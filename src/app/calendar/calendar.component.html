@@ -1,79 +1,232 @@
-
-    <div class="w-full m-4">
-      <div class="max-w-6xl mx-auto">
-        <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-5">
-          <div class="mb-3 md:mb-0">
-            <h2 class="text-2xl font-semibold">{{ viewDate | date:'MMMM yyyy' }}</h2>
-          </div>
-          <div class="flex flex-col sm:flex-row gap-3">
-            <div class="flex">
-              <button
-                class="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white font-medium rounded-l-md"
-                mwlCalendarPreviousView
-                [view]="view"
-                [(viewDate)]="viewDate"
-                (viewDateChange)="closeOpenMonthViewDay()">
-                Previous
-              </button>
-              <button
-                class="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium border-x border-gray-300"
-                mwlCalendarToday
-                [(viewDate)]="viewDate">
-                Today
-              </button>
-              <button
-                class="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white font-medium rounded-r-md"
-                mwlCalendarNextView
-                [view]="view"
-                [(viewDate)]="viewDate"
-                (viewDateChange)="closeOpenMonthViewDay()">
-                Next
-              </button>
-            </div>
-            <div class="flex">
-              <button
-                class="px-4 py-2 font-medium rounded-l-md"
-                [ngClass]="view === CalendarView.Month ? 'bg-blue-600 text-white' : 'bg-blue-500 text-white hover:bg-blue-600'"
-                (click)="setView(CalendarView.Month)">
-                Month
-              </button>
-              <button
-                class="px-4 py-2 font-medium border-x border-blue-600"
-                [ngClass]="view === CalendarView.Week ? 'bg-blue-600 text-white' : 'bg-blue-500 text-white hover:bg-blue-600'"
-                (click)="setView(CalendarView.Week)">
-                Week
-              </button>
-              <button
-                class="px-4 py-2 font-medium rounded-r-md"
-                [ngClass]="view === CalendarView.Day ? 'bg-blue-600 text-white' : 'bg-blue-500 text-white hover:bg-blue-600'"
-                (click)="setView(CalendarView.Day)">
-                Day
-              </button>
-            </div>
-          </div>
+<div class="w-full m-4">
+  <div class="max-w-6xl mx-auto">
+    <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-5">
+      <div class="mb-3 md:mb-0">
+        <h2 class="text-2xl font-semibold">{{ viewDate | date:'MMMM yyyy' }}</h2>
+      </div>
+      <div class="flex flex-col sm:flex-row gap-3">
+        <div class="flex">
+          <button
+            class="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white font-medium rounded-l-md"
+            mwlCalendarPreviousView
+            [view]="view"
+            [(viewDate)]="viewDate"
+            (viewDateChange)="closeOpenMonthViewDay()">
+            Previous
+          </button>
+          <button
+            class="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium border-x border-gray-300"
+            mwlCalendarToday
+            [(viewDate)]="viewDate">
+            Today
+          </button>
+          <button
+            class="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white font-medium rounded-r-md"
+            mwlCalendarNextView
+            [view]="view"
+            [(viewDate)]="viewDate"
+            (viewDateChange)="closeOpenMonthViewDay()">
+            Next
+          </button>
         </div>
-
-        <div [ngSwitch]="view" class="bg-white rounded-lg shadow-md">
-          <mwl-calendar-month-view
-            *ngSwitchCase="CalendarView.Month"
-            [viewDate]="viewDate"
-            [events]="events"
-            [refresh]="refresh"
-            [activeDayIsOpen]="activeDayIsOpen"
-            (dayClicked)="dayClicked($event)">
-          </mwl-calendar-month-view>
-          <mwl-calendar-week-view
-            *ngSwitchCase="CalendarView.Week"
-            [viewDate]="viewDate"
-            [events]="events"
-            [refresh]="refresh">
-          </mwl-calendar-week-view>
-          <mwl-calendar-day-view
-            *ngSwitchCase="CalendarView.Day"
-            [viewDate]="viewDate"
-            [events]="events"
-            [refresh]="refresh">
-          </mwl-calendar-day-view>
+        <div class="flex">
+          <button
+            class="px-4 py-2 font-medium rounded-l-md"
+            [ngClass]="view === CalendarView.Month ? 'bg-blue-600 text-white' : 'bg-blue-500 text-white hover:bg-blue-600'"
+            (click)="setView(CalendarView.Month)">
+            Month
+          </button>
+          <button
+            class="px-4 py-2 font-medium border-x border-blue-600"
+            [ngClass]="view === CalendarView.Week ? 'bg-blue-600 text-white' : 'bg-blue-500 text-white hover:bg-blue-600'"
+            (click)="setView(CalendarView.Week)">
+            Week
+          </button>
+          <button
+            class="px-4 py-2 font-medium rounded-r-md"
+            [ngClass]="view === CalendarView.Day ? 'bg-blue-600 text-white' : 'bg-blue-500 text-white hover:bg-blue-600'"
+            (click)="setView(CalendarView.Day)">
+            Day
+          </button>
         </div>
       </div>
     </div>
+
+    <div [ngSwitch]="view" class="bg-white rounded-lg shadow-md">
+      <!-- Month view with custom template for cell actions -->
+      <mwl-calendar-month-view
+        *ngSwitchCase="CalendarView.Month"
+        [viewDate]="viewDate"
+        [events]="events"
+        [refresh]="refresh"
+        [activeDayIsOpen]="activeDayIsOpen"
+        (dayClicked)="dayClicked($event)"
+        [cellTemplate]="customCellTemplate">
+      </mwl-calendar-month-view>
+
+      <!-- Week view -->
+      <mwl-calendar-week-view
+        *ngSwitchCase="CalendarView.Week"
+        [viewDate]="viewDate"
+        [events]="events"
+        [refresh]="refresh">
+      </mwl-calendar-week-view>
+
+      <!-- Day view -->
+      <mwl-calendar-day-view
+        *ngSwitchCase="CalendarView.Day"
+        [viewDate]="viewDate"
+        [events]="events"
+        [refresh]="refresh">
+      </mwl-calendar-day-view>
+    </div>
+  </div>
+</div>
+
+<!-- Custom cell template with + icon on hover -->
+<ng-template #customCellTemplate let-day="day" let-locale="locale">
+  <div class="day-cell group relative h-full w-full" [class.past-day]="!isDateAvailable(day.date)">
+    <div class="flex justify-between items-start p-1">
+      <span class="text-sm font-medium">{{ day.date | date:'d' }}</span>
+
+      <!-- Add "today" indicator with Tailwind -->
+      <span *ngIf="day.isToday" class="inline-flex items-center justify-center px-2 py-1 text-xs font-bold leading-none text-white bg-blue-500 rounded-full">
+        Today
+      </span>
+    </div>
+
+    <!-- Event indicators styled with Tailwind with better text contrast -->
+    <div *ngIf="day.events.length > 0" class="px-1">
+      <div
+        *ngFor="let event of day.events"
+        class="mt-1 rounded-sm border text-gray-800 p-1 text-xs overflow-hidden"
+        [ngStyle]="{
+          'backgroundColor': event.color?.secondary || '#e0f2fe',
+          'borderColor': event.color?.primary || '#0ea5e9'
+        }"
+        [title]="event.title">
+        <!-- Show event title when day is expanded -->
+        <span *ngIf="isDayExpanded(day.date)" class="block text-gray-800 font-medium truncate">
+          {{ event.title }}
+        </span>
+      </div>
+    </div>
+
+    <!-- + button that appears on hover for available dates -->
+    <div
+      *ngIf="isDateAvailable(day.date)"
+      class="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200"
+      (click)="openAppointmentModal(day.date); $event.stopPropagation()">
+      <button class="w-5 h-5 rounded-full bg-blue-500 text-white flex items-center justify-center hover:bg-blue-600 transition-colors">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+        </svg>
+      </button>
+    </div>
+  </div>
+</ng-template>
+
+<!-- Appointment Creation Modal styled with Tailwind -->
+<div *ngIf="showModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full flex items-center justify-center z-50">
+  <div class="relative bg-white rounded-lg shadow-xl max-w-md w-full mx-4 md:mx-0">
+    <!-- Modal header -->
+    <div class="flex justify-between items-center p-5 border-b border-gray-200">
+      <h3 class="text-xl font-semibold text-gray-900">Schedule New Appointment</h3>
+      <button (click)="closeModal()" class="text-gray-500 hover:text-gray-800 transition-colors duration-200">
+        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+        </svg>
+      </button>
+    </div>
+
+    <!-- Modal body -->
+    <div class="p-6">
+      <div class="mb-4">
+        <label class="block text-gray-700 text-sm font-bold mb-2" for="date">
+          Date
+        </label>
+        <input
+          type="text"
+          id="date"
+          class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+          [value]="selectedDate | date:'MMM d, y'"
+          readonly>
+      </div>
+
+      <div class="mb-4">
+        <label class="block text-gray-700 text-sm font-bold mb-2" for="provider">
+          Provider
+        </label>
+        <select
+          id="provider"
+          class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+          [(ngModel)]="appointmentForm.providerId"
+          (change)="onProviderChange(appointmentForm.providerId)">
+          <option [value]="0" disabled>Select a provider</option>
+          <option *ngFor="let provider of providers" [value]="provider.id">
+            {{ provider.name }} - {{ provider.specialty }}
+          </option>
+        </select>
+      </div>
+
+      <div class="mb-4">
+        <label class="block text-gray-700 text-sm font-bold mb-2" for="time">
+          Time
+        </label>
+        <select
+          id="time"
+          class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+          [(ngModel)]="appointmentForm.time"
+          [disabled]="!selectedProviderTimes.length">
+          <option value="" disabled>Select a time</option>
+          <option *ngFor="let time of selectedProviderTimes" [value]="time">
+            {{ time }}
+          </option>
+        </select>
+        <p *ngIf="appointmentForm.providerId && !selectedProviderTimes.length" class="text-sm text-red-500 mt-1">
+          No available times for this provider on the selected date.
+        </p>
+      </div>
+
+      <div class="mb-4">
+        <label class="block text-gray-700 text-sm font-bold mb-2" for="reason">
+          Reason for Visit
+        </label>
+        <input
+          type="text"
+          id="reason"
+          class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+          [(ngModel)]="appointmentForm.reason"
+          placeholder="Brief description of your visit">
+      </div>
+
+      <div class="mb-4">
+        <label class="block text-gray-700 text-sm font-bold mb-2" for="notes">
+          Additional Notes
+        </label>
+        <textarea
+          id="notes"
+          class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+          [(ngModel)]="appointmentForm.notes"
+          placeholder="Any additional information you'd like to share"
+          rows="3"></textarea>
+      </div>
+    </div>
+
+    <!-- Modal footer -->
+    <div class="flex justify-end p-5 border-t border-gray-200 gap-2">
+      <button
+        class="px-4 py-2 bg-gray-300 text-gray-800 font-medium rounded hover:bg-gray-400 transition-colors duration-200"
+        (click)="closeModal()">
+        Cancel
+      </button>
+      <button
+        class="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white font-medium rounded transition-colors duration-200"
+        [disabled]="!appointmentForm.providerId || !appointmentForm.time"
+        [ngClass]="{'opacity-50 cursor-not-allowed': !appointmentForm.providerId || !appointmentForm.time}"
+        (click)="createAppointment()">
+        Schedule Appointment
+      </button>
+    </div>
+  </div>
+</div>
