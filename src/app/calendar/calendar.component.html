@@ -89,7 +89,6 @@
     <div class="flex justify-between items-start p-1">
       <span class="text-sm font-medium">{{ day.date | date:'d' }}</span>
 
-      <!-- Add "today" indicator with Tailwind -->
       <span *ngIf="day.isToday" class="inline-flex items-center justify-center px-2 py-1 text-xs font-bold leading-none text-white bg-blue-500 rounded-full">
         Today
       </span>
@@ -112,10 +111,10 @@
       </div>
     </div>
 
-    <!-- + button that appears on hover for available dates -->
+    <!-- + button that appears on hover for available dates, moved to bottom right, hidden on weekends -->
     <div
-      *ngIf="isDateAvailable(day.date)"
-      class="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200"
+      *ngIf="isDateAvailable(day.date) && !isWeekend(day.date)"
+      class="absolute bottom-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200"
       (click)="openAppointmentModal(day.date); $event.stopPropagation()">
       <button class="w-5 h-5 rounded-full bg-blue-500 text-white flex items-center justify-center hover:bg-blue-600 transition-colors">
         <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -158,12 +157,13 @@
           Provider
         </label>
         <select
+          #providerSelect
           id="provider"
           class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
           [(ngModel)]="appointmentForm.providerId"
-          (change)="onProviderChange(appointmentForm.providerId)">
-          <option [value]="0" disabled>Select a provider</option>
-          <option *ngFor="let provider of providers" [value]="provider.id">
+          (ngModelChange)="onProviderChange($event)">
+          <option [ngValue]="0" disabled>Select a provider</option>
+          <option *ngFor="let provider of providers" [ngValue]="provider.id">
             {{ provider.name }} - {{ provider.specialty }}
           </option>
         </select>
@@ -178,8 +178,8 @@
           class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
           [(ngModel)]="appointmentForm.time"
           [disabled]="!selectedProviderTimes.length">
-          <option value="" disabled>Select a time</option>
-          <option *ngFor="let time of selectedProviderTimes" [value]="time">
+          <option [ngValue]="''" disabled>Select a time</option>
+          <option *ngFor="let time of selectedProviderTimes" [ngValue]="time">
             {{ time }}
           </option>
         </select>
@@ -224,7 +224,7 @@
         class="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white font-medium rounded transition-colors duration-200"
         [disabled]="!appointmentForm.providerId || !appointmentForm.time"
         [ngClass]="{'opacity-50 cursor-not-allowed': !appointmentForm.providerId || !appointmentForm.time}"
-        (click)="createAppointment()">
+        (click)="createAppointment(); $event.preventDefault(); $event.stopPropagation();">
         Schedule Appointment
       </button>
     </div>

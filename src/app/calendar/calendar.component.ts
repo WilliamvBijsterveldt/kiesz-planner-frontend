@@ -3,7 +3,8 @@ import { Subject } from 'rxjs';
 import { CalendarEvent, CalendarView, CalendarEventTimesChangedEvent } from 'angular-calendar';
 import {
   startOfDay, endOfDay, subDays, addDays, endOfMonth,
-  isSameDay, isSameMonth, addHours, setHours, setMinutes
+  isSameDay, isSameMonth, addHours, setHours, setMinutes,
+  getDay
 } from 'date-fns';
 import { MonthViewDay } from 'calendar-utils';
 
@@ -65,26 +66,24 @@ export class CalendarComponent implements OnInit {
     '13:00', '13:30', '14:00', '14:30', '15:00', '15:30', '16:00', '16:30'
   ];
 
-
-
   // Mock providers data (would typically come from API)
   providers: Provider[] = [
     {
       id: 1,
       name: 'Dr. Sarah Johnson',
-      specialty: 'Cardiologist',
+      specialty: 'Endodontist',
       availableTimes: ['09:00', '10:30', '13:00', '15:30']
     },
     {
       id: 2,
       name: 'Dr. Michael Chen',
-      specialty: 'Dermatologist',
+      specialty: 'Dentist',
       availableTimes: ['08:30', '11:00', '14:00', '16:00']
     },
     {
       id: 3,
       name: 'Dr. Emily Rodriguez',
-      specialty: 'Family Medicine',
+      specialty: 'Dentist',
       availableTimes: ['08:00', '09:30', '13:30', '15:00']
     }
   ];
@@ -102,9 +101,9 @@ export class CalendarComponent implements OnInit {
       }
     },
     {
-      start: setHours(setMinutes(addDays(startOfDay(new Date()), 2), 0), 14),
-      end: setHours(setMinutes(addDays(startOfDay(new Date()), 2), 30), 14),
-      title: 'Skin Consultation with Dr. Chen',
+      start: setHours(setMinutes(addDays(startOfDay(new Date()), 1), 0), 14),
+      end: setHours(setMinutes(addDays(startOfDay(new Date()), 1), 30), 14),
+      title: 'Endo with Dr. Chen',
       color: {
         primary: '#8b5cf6',
         secondary: '#ede9fe',
@@ -164,6 +163,12 @@ export class CalendarComponent implements OnInit {
     return startOfDay(date) >= this.today;
   }
 
+  // Method to check if a date is a weekend (Saturday = 6, Sunday = 0)
+  isWeekend(date: Date): boolean {
+    const day = getDay(date);
+    return day === 0 || day === 6;
+  }
+
   // New method to check if a day is currently expanded
   isDayExpanded(date: Date): boolean {
     return this.activeDayIsOpen && isSameDay(date, this.viewDate);
@@ -172,6 +177,11 @@ export class CalendarComponent implements OnInit {
   openAppointmentModal(date: Date): void {
     this.selectedDate = date;
     this.appointmentForm.date = date;
+    this.appointmentForm.providerId = 0; // Reset provider selection
+    this.appointmentForm.time = '';      // Reset time selection
+    this.appointmentForm.reason = '';    // Reset reason
+    this.appointmentForm.notes = '';     // Reset notes
+    this.selectedProviderTimes = [];     // Reset available times
     this.showModal = true;
   }
 
@@ -182,12 +192,43 @@ export class CalendarComponent implements OnInit {
   onProviderChange(providerId: number): void {
     const selectedProvider = this.providers.find(p => p.id === +providerId);
     if (selectedProvider) {
-      this.selectedProviderTimes = selectedProvider.availableTimes;
-      // Default to first available time
-      this.appointmentForm.time = selectedProvider.availableTimes[0] || '';
+      this.selectedProviderTimes = [...selectedProvider.availableTimes];
+
+      // Remove times that are already booked for this provider on this day
+      this.filterBookedTimes(selectedProvider.id);
+
+      // Default to first available time if any are left
+      this.appointmentForm.time = this.selectedProviderTimes.length > 0 ?
+        this.selectedProviderTimes[0] : '';
     } else {
       this.selectedProviderTimes = [];
+      this.appointmentForm.time = '';
     }
+  }
+
+  filterBookedTimes(providerId: number): void {
+    // Get the date for comparison (ignoring time)
+    const selectedDateStart = startOfDay(this.selectedDate);
+    const selectedDateEnd = endOfDay(this.selectedDate);
+
+    // Find events for this provider on the selected date
+    const bookedAppointments = this.events.filter(event => {
+      return event.start >= selectedDateStart &&
+        event.start <= selectedDateEnd &&
+        event.title.includes(this.providers.find(p => p.id === providerId)?.name || '');
+    });
+
+    // Remove booked times from available times
+    bookedAppointments.forEach(appointment => {
+      const bookedHour = appointment.start.getHours().toString().padStart(2, '0');
+      const bookedMinute = appointment.start.getMinutes().toString().padStart(2, '0');
+      const bookedTime = `${bookedHour}:${bookedMinute}`;
+
+      const index = this.selectedProviderTimes.indexOf(bookedTime);
+      if (index !== -1) {
+        this.selectedProviderTimes.splice(index, 1);
+      }
+    });
   }
 
   createAppointment(): void {
@@ -211,27 +252,31 @@ export class CalendarComponent implements OnInit {
     const endTime = new Date(appointmentDate);
     endTime.setMinutes(endTime.getMinutes() + 30);
 
-    // Choose a color based on provider specialty
+    // Choose a color based on provider
     let colorScheme = {
       primary: '#0ea5e9',
-      secondary: '#e0f2fe'
+      secondary: '#e0f2fe',
+      secondaryText: '#000000'
     };
 
     // Assign different colors based on provider
     if (provider.id === 1) {
       colorScheme = {
         primary: '#0ea5e9', // blue
-        secondary: '#e0f2fe'
+        secondary: '#e0f2fe',
+        secondaryText: '#000000'
       };
     } else if (provider.id === 2) {
       colorScheme = {
         primary: '#8b5cf6', // purple
-        secondary: '#ede9fe'
+        secondary: '#ede9fe',
+        secondaryText: '#000000'
       };
     } else if (provider.id === 3) {
       colorScheme = {
         primary: '#10b981', // green
-        secondary: '#d1fae5'
+        secondary: '#d1fae5',
+        secondaryText: '#000000'
       };
     }
 
@@ -243,13 +288,11 @@ export class CalendarComponent implements OnInit {
       color: colorScheme
     };
 
-    // Add to events array and ensure it triggers update
+    // Add to events array
     this.events = [...this.events, newAppointment];
 
     // Force refresh the calendar view
-    setTimeout(() => {
-      this.refresh.next();
-    }, 100);
+    this.refresh.next();
 
     // Show confirmation
     alert('Appointment created successfully!');
