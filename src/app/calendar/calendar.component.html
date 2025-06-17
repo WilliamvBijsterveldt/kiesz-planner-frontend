@@ -163,8 +163,8 @@
           [(ngModel)]="appointmentForm.providerId"
           (ngModelChange)="onProviderChange($event)">
           <option [ngValue]="0" disabled>Select a provider</option>
-          <option *ngFor="let provider of providers" [ngValue]="provider.id">
-            {{ provider.name }} - {{ provider.specialty }}
+          <option *ngFor="let provider of providers" [ngValue]="provider.ProvNum">
+            {{ provider.LName }} - {{ provider.specialty }}
           </option>
         </select>
       </div>
