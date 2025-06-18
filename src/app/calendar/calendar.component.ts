@@ -38,6 +38,16 @@ interface AppointmentFormData {
     .cal-event-title {
       color: #1f2937 !important;
     }
+    .cal-event {
+      cursor: move;
+    }
+    .cal-event:hover .delete-button {
+      opacity: 1;
+    }
+    .delete-button {
+      opacity: 0;
+      transition: opacity 0.2s;
+    }
   `]
 })
 export class CalendarComponent implements OnInit {
@@ -49,7 +59,9 @@ export class CalendarComponent implements OnInit {
 
   // Modal controls
   showModal: boolean = false;
+  showDeleteConfirm: boolean = false;
   selectedDate: Date = new Date();
+  eventToDelete: CalendarEvent | null = null;
 
   // Form data
   appointmentForm: AppointmentFormData = {
@@ -91,6 +103,7 @@ export class CalendarComponent implements OnInit {
   // Mock appointments data (would typically come from API)
   events: CalendarEvent[] = [
     {
+      id: 1,
       start: setHours(setMinutes(startOfDay(new Date()), 30), 9),
       end: setHours(setMinutes(startOfDay(new Date()), 0), 10),
       title: 'Annual Check-up with Dr. Johnson',
@@ -98,9 +111,15 @@ export class CalendarComponent implements OnInit {
         primary: '#0ea5e9',
         secondary: '#e0f2fe',
         secondaryText: '#000000'
+      },
+      draggable: true,
+      resizable: {
+        beforeStart: false,
+        afterEnd: false
       }
     },
     {
+      id: 2,
       start: setHours(setMinutes(addDays(startOfDay(new Date()), 1), 0), 14),
       end: setHours(setMinutes(addDays(startOfDay(new Date()), 1), 30), 14),
       title: 'Endo with Dr. Chen',
@@ -108,9 +127,15 @@ export class CalendarComponent implements OnInit {
         primary: '#8b5cf6',
         secondary: '#ede9fe',
         secondaryText: '#000000'
+      },
+      draggable: true,
+      resizable: {
+        beforeStart: false,
+        afterEnd: false
       }
     },
     {
+      id: 3,
       start: setHours(setMinutes(addDays(startOfDay(new Date()), 5), 30), 10),
       end: setHours(setMinutes(addDays(startOfDay(new Date()), 5), 0), 11),
       title: 'Follow-up with Dr. Rodriguez',
@@ -118,6 +143,11 @@ export class CalendarComponent implements OnInit {
         primary: '#10b981',
         secondary: '#d1fae5',
         secondaryText: '#000000'
+      },
+      draggable: true,
+      resizable: {
+        beforeStart: false,
+        afterEnd: false
       }
     }
   ];
@@ -280,12 +310,21 @@ export class CalendarComponent implements OnInit {
       };
     }
 
+    // Generate unique ID for the new appointment
+    const newId = Math.max(...this.events.map(e => Number(e.id) || 0)) + 1;
+
     // Create the new appointment event
     const newAppointment: CalendarEvent = {
+      id: newId,
       start: appointmentDate,
       end: endTime,
       title: `${this.appointmentForm.reason || 'Appointment'} with ${provider.name}`,
-      color: colorScheme
+      color: colorScheme,
+      draggable: true,
+      resizable: {
+        beforeStart: false,
+        afterEnd: false
+      }
     };
 
     // Add to events array
@@ -308,5 +347,85 @@ export class CalendarComponent implements OnInit {
       reason: '',
       notes: ''
     };
+  }
+
+  // Handle event time changes (drag and drop)
+  eventTimesChanged({
+                      event,
+                      newStart,
+                      newEnd,
+                    }: CalendarEventTimesChangedEvent): void {
+    // Check if the new date is valid (not in the past, not on weekend)
+    if (!this.isDateAvailable(newStart) || this.isWeekend(newStart)) {
+      alert('Cannot schedule appointments in the past or on weekends');
+      return;
+    }
+
+    // Check if the new time slot is available
+    if (!this.isTimeSlotAvailable(newStart, event.id)) {
+      alert('This time slot is not available');
+      return;
+    }
+
+    // Update the event
+    const updatedEvents = this.events.map(e => {
+      if (e.id === event.id) {
+        return {
+          ...e,
+          start: newStart,
+          end: newEnd || new Date(newStart.getTime() + 30 * 60000) // 30 minutes default
+        };
+      }
+      return e;
+    });
+
+    this.events = updatedEvents;
+    this.refresh.next();
+  }
+
+  // Check if a time slot is available (no conflicting appointments)
+  isTimeSlotAvailable(newStart: Date, eventId?: string | number): boolean {
+    const newEnd = new Date(newStart.getTime() + 30 * 60000); // 30 minutes
+
+    return !this.events.some(event => {
+      // Skip the event being moved
+      if (event.id === eventId) return false;
+
+      // Check for overlap
+      // @ts-ignore
+      return (newStart < event.end && newEnd > event.start);
+    });
+  }
+
+  // Handle event click to show delete option
+  handleEvent(action: string, event: CalendarEvent): void {
+    if (action === 'Clicked') {
+      this.eventToDelete = event;
+      this.showDeleteConfirm = true;
+    }
+  }
+
+  // Confirm deletion
+  confirmDelete(): void {
+    if (this.eventToDelete) {
+      this.events = this.events.filter(event => event.id !== this.eventToDelete!.id);
+      this.refresh.next();
+      this.showDeleteConfirm = false;
+      this.eventToDelete = null;
+      alert('Appointment deleted successfully!');
+    }
+  }
+
+  // Cancel deletion
+  cancelDelete(): void {
+    this.showDeleteConfirm = false;
+    this.eventToDelete = null;
+  }
+
+  // Quick delete method for delete button on events
+  deleteEvent(event: CalendarEvent, $event: Event): void {
+    $event.stopPropagation();
+    this.eventToDelete = event;
+    this.showDeleteConfirm = true;
   }
 }
