@@ -1,12 +1,11 @@
 export class Appointment {
-  AptNum: number;
-  PatNum: number;
-  AptDateTime: Date;
-  Duration: Date;
-  ProcDescript: string;
-  ConfirmedDescription: string;
-  Provider: string;
-  Op: number;
-  IsNewPatient: string;
-  Priority: string;
+  aptNum: number;
+  patNum: number;
+  op: number;
+  aptDateTime: Date;
+  note?: string;
+  provNum: number;
+  procDescript?: string;
+  duration: string;
+  provider: string;
 }

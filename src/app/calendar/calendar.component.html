@@ -52,6 +52,7 @@
       </div>
     </div>
 
+
     <div [ngSwitch]="view" class="bg-white rounded-lg shadow-md">
       <!-- Month view with custom template for cell actions -->
       <mwl-calendar-month-view
@@ -61,6 +62,8 @@
         [refresh]="refresh"
         [activeDayIsOpen]="activeDayIsOpen"
         (dayClicked)="dayClicked($event)"
+        (eventClicked)="handleEvent('Clicked', $event.event)"
+        (eventTimesChanged)="eventTimesChanged($event)"
         [cellTemplate]="customCellTemplate">
       </mwl-calendar-month-view>
 
@@ -69,7 +72,9 @@
         *ngSwitchCase="CalendarView.Week"
         [viewDate]="viewDate"
         [events]="events"
-        [refresh]="refresh">
+        [refresh]="refresh"
+        (eventClicked)="handleEvent('Clicked', $event.event)"
+        (eventTimesChanged)="eventTimesChanged($event)">
       </mwl-calendar-week-view>
 
       <!-- Day view -->
@@ -77,7 +82,9 @@
         *ngSwitchCase="CalendarView.Day"
         [viewDate]="viewDate"
         [events]="events"
-        [refresh]="refresh">
+        [refresh]="refresh"
+        (eventClicked)="handleEvent('Clicked', $event.event)"
+        (eventTimesChanged)="eventTimesChanged($event)">
       </mwl-calendar-day-view>
     </div>
   </div>
@@ -98,16 +105,25 @@
     <div *ngIf="day.events.length > 0" class="px-1">
       <div
         *ngFor="let event of day.events"
-        class="mt-1 rounded-sm border text-gray-800 p-1 text-xs overflow-hidden"
+        class="mt-1 rounded-sm border text-gray-800 p-1 text-xs overflow-hidden group relative"
         [ngStyle]="{
           'backgroundColor': event.color?.secondary || '#e0f2fe',
           'borderColor': event.color?.primary || '#0ea5e9'
         }"
         [title]="event.title">
         <!-- Show event title when day is expanded -->
-        <span *ngIf="isDayExpanded(day.date)" class="block text-gray-800 font-medium truncate">
+        <span *ngIf="isDayExpanded(day.date)" class="block text-gray-800 font-medium truncate pr-5">
           {{ event.title }}
         </span>
+
+        <!-- Delete button that appears on hover -->
+        <button
+          *ngIf="isDayExpanded(day.date)"
+          class="delete-button absolute top-0 right-0 w-4 h-4 bg-red-500 text-white rounded-full flex items-center justify-center hover:bg-red-600 transition-colors text-xs"
+          (click)="deleteEvent(event, $event)"
+          title="Delete appointment">
+          ×
+        </button>
       </div>
     </div>
 
@@ -122,6 +138,39 @@
         </svg>
       </button>
     </div>
+  </div>
+</ng-template>
+
+<!-- Custom event template for better drag and drop experience -->
+<ng-template #customEventTemplate let-weekEvent="weekEvent" let-tooltipPlacement="tooltipPlacement" let-eventClicked="eventClicked" let-tooltipTemplate="tooltipTemplate" let-tooltipAppendToBody="tooltipAppendToBody" let-tooltipDisabled="tooltipDisabled" let-tooltipDelay="tooltipDelay" let-column="column" let-daysInWeek="daysInWeek">
+  <div
+    class="cal-event group relative cursor-move"
+    [style.backgroundColor]="weekEvent.event.color?.primary"
+    [style.borderColor]="weekEvent.event.color?.primary"
+    [class.cal-draggable]="weekEvent.event?.draggable"
+    [mwlCalendarTooltip]="!tooltipDisabled ? (weekEvent.event.title || '') : ''"
+    [tooltipPlacement]="tooltipPlacement"
+    [tooltipEvent]="weekEvent.event"
+    [tooltipTemplate]="tooltipTemplate"
+    [tooltipAppendToBody]="tooltipAppendToBody"
+    [tooltipDelay]="tooltipDelay"
+    (mwlClick)="eventClicked.emit({event: weekEvent.event, sourceEvent: $event})"
+    (mwlKeydownEnter)="eventClicked.emit({event: weekEvent.event, sourceEvent: $event})"
+    tabindex="0"
+    role="application"
+    [attr.aria-label]="weekEvent.event.title || ''">
+
+    <div class="cal-event-title text-white font-medium p-1 text-xs truncate pr-6">
+      {{ weekEvent.event.title }}
+    </div>
+
+    <!-- Delete button that appears on hover -->
+    <button
+      class="delete-button absolute top-0 right-0 w-4 h-4 bg-red-500 text-white rounded-full flex items-center justify-center hover:bg-red-600 transition-colors text-xs"
+      (click)="deleteEvent(weekEvent.event, $event)"
+      title="Delete appointment">
+      ×
+    </button>
   </div>
 </ng-template>
 
@@ -160,11 +209,11 @@
           #providerSelect
           id="provider"
           class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-          [(ngModel)]="appointmentForm.providerId"
+          [(ngModel)]="appointmentForm.provNum"
           (ngModelChange)="onProviderChange($event)">
           <option [ngValue]="0" disabled>Select a provider</option>
-          <option *ngFor="let provider of providers" [ngValue]="provider.ProvNum">
-            {{ provider.LName }} - {{ provider.specialty }}
+          <option *ngFor="let provider of providers" [ngValue]="provider.provNum">
+            {{ provider.lName }}
           </option>
         </select>
       </div>
@@ -176,17 +225,18 @@
         <select
           id="time"
           class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-          [(ngModel)]="appointmentForm.time"
-          [disabled]="!selectedProviderTimes.length">
-          <option [ngValue]="''" disabled>Select a time</option>
-          <option *ngFor="let time of selectedProviderTimes" [ngValue]="time">
-            {{ time }}
+          [(ngModel)]="selectedTimeSlot"
+          [disabled]="!providerTimeSlots.length">
+          <option [ngValue]="null" disabled>Select a time</option>
+          <option *ngFor="let slot of providerTimeSlots" [ngValue]="slot">
+            {{ slot.dateTimeStart | date: 'shortTime' }} - {{ slot.dateTimeEnd | date: 'shortTime' }}
           </option>
         </select>
-        <p *ngIf="appointmentForm.providerId && !selectedProviderTimes.length" class="text-sm text-red-500 mt-1">
+        <p *ngIf="appointmentForm.provNum && !providerTimeSlots.length" class="text-sm text-red-500 mt-1">
           No available times for this provider on the selected date.
         </p>
       </div>
+
 
       <div class="mb-4">
         <label class="block text-gray-700 text-sm font-bold mb-2" for="reason">
@@ -196,7 +246,7 @@
           type="text"
           id="reason"
           class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-          [(ngModel)]="appointmentForm.reason"
+          [(ngModel)]="appointmentForm.procDescript"
           placeholder="Brief description of your visit">
       </div>
 
@@ -207,7 +257,7 @@
         <textarea
           id="notes"
           class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-          [(ngModel)]="appointmentForm.notes"
+          [(ngModel)]="appointmentForm.note"
           placeholder="Any additional information you'd like to share"
           rows="3"></textarea>
       </div>
@@ -222,11 +272,57 @@
       </button>
       <button
         class="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white font-medium rounded transition-colors duration-200"
-        [disabled]="!appointmentForm.providerId || !appointmentForm.time"
-        [ngClass]="{'opacity-50 cursor-not-allowed': !appointmentForm.providerId || !appointmentForm.time}"
+        [disabled]="!appointmentForm.provNum || !selectedTimeSlot"
+        [ngClass]="{'opacity-50 cursor-not-allowed': !appointmentForm.provNum || !selectedTimeSlot}"
         (click)="createAppointment(); $event.preventDefault(); $event.stopPropagation();">
         Schedule Appointment
       </button>
+    </div>
+
+
+    <div class="bg-green-200 p-4 fixed top-10 left-10 z-[9999]">
+      Test modal visible
+    </div>
+
+
+
+    <!-- Delete Confirmation Modal -->
+    <div *ngIf="showDeleteConfirm" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full flex items-center justify-center z-50">
+      <div class="relative bg-white rounded-lg shadow-xl max-w-md w-full mx-4 md:mx-0">
+        <!-- Modal header -->
+        <div class="flex justify-between items-center p-5 border-b border-gray-200">
+          <h3 class="text-xl font-semibold text-gray-900">Delete Appointment</h3>
+          <button (click)="cancelDelete()" class="text-gray-500 hover:text-gray-800 transition-colors duration-200">
+            ×
+          </button>
+        </div>
+
+        <!-- Modal body -->
+        <div class="p-6 text-center">
+          <h3 class="text-lg leading-6 font-medium text-gray-900 mb-2">
+            Are you sure you want to delete this appointment?
+          </h3>
+          <div class="text-sm text-gray-500 mb-4">
+            <p class="font-medium">{{ eventToDelete?.title }}</p>
+            <p>{{ eventToDelete?.start | date:'MMM d, y - h:mm a' }}</p>
+          </div>
+          <p class="text-sm text-gray-500">
+            This action cannot be undone.
+          </p>
+        </div>
+
+        <!-- Modal footer -->
+        <div class="flex justify-end p-5 border-t border-gray-200 gap-2">
+          <button class="px-4 py-2 bg-gray-300 text-gray-800 font-medium rounded hover:bg-gray-400 transition-colors duration-200"
+                  (click)="cancelDelete()">
+            Cancel
+          </button>
+          <button class="px-4 py-2 bg-red-500 hover:bg-red-600 text-white font-medium rounded transition-colors duration-200"
+                  (click)="confirmDelete()">
+            Delete Appointment
+          </button>
+        </div>
+      </div>
     </div>
   </div>
 </div>

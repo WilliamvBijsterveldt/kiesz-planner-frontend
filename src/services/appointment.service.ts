@@ -18,22 +18,22 @@ export class AppointmentService {
   }
 
   getTimeSlots(provNum: number, currentDateTime: Date): Observable<TimeSlot[]> {
-    return this.httpClient.get<TimeSlot[]>(`${this.baseurl}/TimeSlots`);
+    return this.httpClient.get<TimeSlot[]>(`${this.baseurl}/Appointment/TimeSlots`);
   }
 
   getProviders(): Observable<Provider[]> {
-    return this.httpClient.get<Provider[]>(`${this.baseurl}/Providers`);
+    return this.httpClient.get<Provider[]>(`${this.baseurl}/Appointment/Providers`);
   }
 
   createAppointment(appointment: Appointment): Observable<any> {
-    return this.httpClient.post(`${this.baseurl}/appointments/Create`, appointment);
+    return this.httpClient.post(`${this.baseurl}/Appointment/Create`, appointment);
   }
 
   updateAppointment(appointment: Appointment): Observable<any> {
-    return this.httpClient.put(`${this.baseurl}/appointments/Update`, appointment);
+    return this.httpClient.put(`${this.baseurl}/Appointment/Update/${appointment.aptNum}`, {aptDateTime: appointment.aptDateTime});
   }
 
   deleteAppointment(appointment: Appointment): Observable<any> {
-    return this.httpClient.delete(`${this.baseurl}/appointments/Delete`, { body: appointment });
+    return this.httpClient.delete(`${this.baseurl}/Appointment/Delete`, { body: appointment });
   }
 }

@@ -9,6 +9,7 @@ import { CalendarComponent } from './calendar/calendar.component';
 import { NavbarComponent } from './navbar/navbar.component';
 import {NgOptimizedImage} from '@angular/common';
 import {FormsModule} from '@angular/forms';
+import {provideHttpClient} from '@angular/common/http';
 
 @NgModule({
   declarations: [
@@ -27,7 +28,9 @@ import {FormsModule} from '@angular/forms';
     NgOptimizedImage,
     FormsModule
   ],
-  providers: [],
+  providers: [
+    provideHttpClient()
+  ],
   bootstrap: [AppComponent]
 })
 export class AppModule { }

@@ -1,8 +1,8 @@
 export class Provider {
-  ProvNum: number;
-  FName: string;
-  Abbr: string;
-  LName: string;
-  Suffix: string;
-  ProvStatus: string;
+  provNum: number;
+  fName: string;
+  abbr: string;
+  lName: string;
+  suffix: string;
+  provStatus: string;
 }
