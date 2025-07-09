@@ -253,6 +253,7 @@ export class CalendarComponent implements OnInit {
   }
 
   // Handle event click to show delete option
+  // There is no actual delete functionality in the backend as Open Dental has no API for deleting appointments.
   handleEvent(action: string, event: CalendarEvent): void {
     console.log('event clicked:', event)
     if (action === 'Clicked') {
