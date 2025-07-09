@@ -263,7 +263,7 @@ export class CalendarComponent implements OnInit {
     }
   }
 
-  // Confirm deletion
+  /*// Confirm deletion
   confirmDelete(): void {
     if (!this.eventToDelete) return;
 
@@ -287,5 +287,5 @@ export class CalendarComponent implements OnInit {
     $event.stopPropagation();
     this.eventToDelete = event;
     this.showDeleteConfirm = true;
-  }
+  }*/
 }
